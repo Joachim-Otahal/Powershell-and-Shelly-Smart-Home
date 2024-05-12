@@ -3,7 +3,13 @@ There is no documentation and no examples how to use Shelly products with Powers
 
 ## Basic Information
 All examples and are based on Powershell 5.1 which is available for Windows 7 and Server 2088 R2 up to the newest Insider builds for Windows and Windows Servers.
-Depending on the age or generation of the shelly you can rpc commands, which are better organized, or the older query style. Sometimes there are small but useful differences between those for the same function.
+
+I recommend using my examples in Powershell-ISE, which is available in all Windows current versions, set the cursor on the line you want to try and hit the green "run selection" button.
+
+![image](https://github.com/Joachim-Otahal/Powershell-and-Shelly-Smart-Home/assets/10100281/a3911ca5-8141-45de-9a1a-e3636fab3cc7)
+
+Depending on the age or generation of the shelly you can use rpc commands, which are better organized, or the older query style. Sometimes there are small but useful differences between those for the same function.
+
 The commands with examples for curl are listed at https://shelly-api-docs.shelly.cloud , and they can all be translated to powershell.
 
 ## Shelly-Important-RPC-commands.ps1
