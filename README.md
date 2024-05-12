@@ -1,23 +1,19 @@
 # Powershell and Shelly Smart Home
-There is no documentation and there are no examples how to use Shelly products with Powershell, so lets make some.
+There is no documentation and no examples how to use Shelly products with Powershell, so lets make some. Powershell is very well equipped to control the Shelly products with its built-in capabilities.
 
 ## Basic Information
 All examples and are based on Powershell 5.1 which is available for Windows 7 and Server 2088 R2 up to the newest Insider builds for Windows and Windows Servers.
-Depending on the age or generation of the shelly you can rpc commands, which are better organized, or the older query style.
+Depending on the age or generation of the shelly you can rpc commands, which are better organized, or the older query style. Sometimes there are small but useful differences between those for the same function.
 The commands with examples for curl are listed at https://shelly-api-docs.shelly.cloud , and they can all be translated to powershell.
 
-## Important rpc commands
+## Shelly-Important-RPC-commands.ps1
 Things like "How do I get a list of all available commands?"
 
+## Shelly-3-EM-Pro.ps1
+How do I read the power usage, and the histoy data for a specific time frame? And why is the Energy usage not logged?
 
-## Shelly 3 EM Pro Command examples
-How do I read the power usage, and the histoy data for a specific time frame?
-
-
-## Shelly 1 Mini Gen 3 examples
+## Shelly-1-Mini-Gen-3.ps1
 Get the status, use the switch.
 
-
-## Shelly Plug S (Plus)
+## Shelly-Plug-S.ps1
 Get status, switch it, and read the real power usage if the plug dislikes the device.
-
