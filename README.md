@@ -16,7 +16,7 @@ The commands with examples for curl are listed at https://shelly-api-docs.shelly
 Things like "How do I get a list of all available commands?"
 
 ## Shelly-3-EM-Pro.ps1
-How do I read the power usage, and the histoy data for a specific time frame? (And why is the Energy usage not logged in the .CSV?)
+How do I read the power usage, and the history data for a specific time frame? (And why is the Energy usage not logged in the .CSV?)
 
 ## Shelly-1-Mini-Gen-3.ps1
 Get the status, use the switch.
