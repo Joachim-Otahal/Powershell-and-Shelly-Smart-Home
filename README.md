@@ -22,4 +22,4 @@ How do I read the power usage, and the histoy data for a specific time frame? (A
 Get the status, use the switch.
 
 ## Shelly-Plug-S.ps1
-Get status, switch it, and read the real power usage if the plug dislikes the device.
+Get the status, use the switch.
