@@ -6,27 +6,7 @@
 # Where is the device ?
 $Shelly3EMIP = "192.168.33.159"
 
-
-# Simple first test, will show the time zones, albeit as raw HTTP information
-Invoke-WebRequest -Uri "http://$Shelly3EMIP/rpc/Shelly.ListTimezones" -Method Get -UseBasicParsing -TimeoutSec 5
-
-
-# List all available rcp commands for this device
-(((Invoke-WebRequest -Uri "http://$Shelly3EMIP/rpc/Shelly.ListMethods" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json).methods
-
-
-# Get the status and convert the JSON into a usable object.
-$Shelly3EMGetStatus = ((Invoke-WebRequest -Uri "http://192.168.33.159/rpc/Shelly.GetStatus" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
-# Temperature in celsius
-$Shelly3EMGetStatus.'temperature:0'.tC
-# Actual total power over all three phases. This is what the energy meter from your electricity supplier sees and you pay for.
-# This is the most important information if you want to switch on devices if you have a lot of free solar power, i.e. if this readin is negative.
-$Shelly3EMGetStatus.'em:0'.total_act_power
-# The apparent power includes everything, even energy which is not actually metered like blind power.
-$Shelly3EMGetStatus.'em:0'.total_aprt_power
-
-# List all available data of that object recursivly. I spare you the output for obvious reasons.
-# In this case you will have to mark the following 25 lines and then hit the "Papersheet-Play" button in Powershell-ISE
+# Helper function to list all properties
 function Get-PropertiesRecursive {
     param (
         [Parameter(ValueFromPipeline)][object]$InputObject,
@@ -40,7 +20,9 @@ function Get-PropertiesRecursive {
         } else {
             $Name = $Property.Name
         }
-        if ($Property.TypeNameOfValue.Split(".")[-1] -ne "PSCustomObject") {
+        $PropertyTypeName = $Property.TypeNameOfValue.Split('.')[-1]
+        if (($PropertyTypeName -ne "PSCustomObject" -and $PropertyTypeName -notlike "Object*") -or
+            $ParentName -like "*.SyncRoot.*") {
             [pscustomobject]@{
                 TypeName = $Property.TypeNameOfValue.Split(".")[-1]
                 Property = "$ParentName$Name"
@@ -51,5 +33,25 @@ function Get-PropertiesRecursive {
         }
     }
 }
-Get-PropertiesRecursive $Shelly3EMGetStatus -ParentName '$Shelly3EMGetStatus'
 
+
+# Simple first test, will show the time zones, albeit as raw HTTP information
+Invoke-WebRequest -Uri "http://$Shelly3EMIP/rpc/Shelly.ListTimezones" -Method Get -UseBasicParsing -TimeoutSec 5
+
+
+# List all available rpc commands for this device
+(((Invoke-WebRequest -Uri "http://$Shelly3EMIP/rpc/Shelly.ListMethods" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json).methods
+
+
+# Get the status and convert the JSON into a usable object.
+$Shelly3EMGetStatus = ((Invoke-WebRequest -Uri "http://192.168.33.159/rpc/Shelly.GetStatus" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+# Temperature in celsius
+$Shelly3EMGetStatus.'temperature:0'.tC
+# Actual total power over all three phases. This is what the energy meter from your electricity supplier sees and you pay for.
+# This is the most important information if you want to switch on devices if you have a lot of free solar power, i.e. if this readin is negative.
+$Shelly3EMGetStatus.'em:0'.total_act_power
+# The apparent power includes everything, even energy which is not actually metered like blind power.
+$Shelly3EMGetStatus.'em:0'.total_aprt_power
+
+# List all status information in a readable way.
+Get-PropertiesRecursive $Shelly3EMGetStatus -ParentName '$Shelly3EMGetStatus'
