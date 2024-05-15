@@ -2,7 +2,7 @@
 There is no documentation and no examples how to use Shelly products with Powershell, so lets make some. Powershell is very well equipped to control the Shelly products with its built-in capabilities.
 
 ## Basic Information
-All examples and are based on Powershell 5.1 which is available for Windows 7 and Server 2088 R2 up to the newest Insider builds for Windows and Windows Servers.
+All examples and are based on Powershell 5.1 which is available for Windows 7 and Server 2008 R2 up to the newest Insider builds for Windows and Windows Servers.
 
 I recommend using my examples in Powershell-ISE, which is available in all Windows current versions, set the cursor on the line you want to try and hit the green "run selection" button.
 
