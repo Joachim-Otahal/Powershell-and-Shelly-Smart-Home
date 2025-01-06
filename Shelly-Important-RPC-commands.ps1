@@ -40,11 +40,11 @@ Invoke-WebRequest -Uri "http://$Shelly3EMIP/rpc/Shelly.ListTimezones" -Method Ge
 
 
 # List all available rpc commands for this device
-(((Invoke-WebRequest -Uri "http://$Shelly3EMIP/rpc/Shelly.ListMethods" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json).methods
+((Invoke-WebRequest -Uri "http://$Shelly3EMIP/rpc/Shelly.ListMethods" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json).methods
 
 
 # Get the status and convert the JSON into a usable object.
-$Shelly3EMGetStatus = ((Invoke-WebRequest -Uri "http://192.168.33.159/rpc/Shelly.GetStatus" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$Shelly3EMGetStatus = (Invoke-WebRequest -Uri "http://192.168.33.50/rpc/Shelly.GetStatus" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 # Temperature in celsius
 $Shelly3EMGetStatus.'temperature:0'.tC
 # Actual total power over all three phases. This is what the energy meter from your electricity supplier sees and you pay for.

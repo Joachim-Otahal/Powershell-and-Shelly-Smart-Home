@@ -10,9 +10,10 @@ $ShellyMini = "192.168.33.191"
 function Get-PropertiesRecursive {
     param (
         [Parameter(ValueFromPipeline)][object]$InputObject,
-        [String]$ParentName
+        [String]$ParentName,
+        [int]$MaxDepth = 10
     )
-    if ($ParentName) {$ParentName +="."}
+    if ($ParentName) {$ParentNameDot ="$ParentName."} else {$ParentNameDot = ""}
     foreach ($Property in $InputObject.psobject.Properties) {
         # This puts special characters in '' like you need it when using it directly with powershell
         if ($Property.Name -like "*:*" -or $Property.Name -like "* *"  -or $Property.Name -like "*-*") {
@@ -22,25 +23,26 @@ function Get-PropertiesRecursive {
         }
         $PropertyTypeName = $Property.TypeNameOfValue.Split('.')[-1]
         if (($PropertyTypeName -ne "PSCustomObject" -and $PropertyTypeName -notlike "Object*") -or
-            $ParentName -like "*.SyncRoot.*") {
+            # Catch simple recursion
+            $ParentName.Split('.')[-1] -eq $Name -or $MaxDepth -le 0) {
             [pscustomobject]@{
-                TypeName = $Property.TypeNameOfValue.Split(".")[-1]
-                Property = "$ParentName$Name"
+                TypeName = $PropertyTypeName
+                Property = "$ParentNameDot$Name"
                 Value = $Property.Value
             }
         } else {
-            Get-PropertiesRecursive $Property.Value -ParentName "$ParentName$Name"
+            Get-PropertiesRecursive $Property.Value -ParentName "$ParentNameDot$Name" -MaxDepth $($MaxDepth-1)
         }
     }
 }
 
 
 # List all available rpc commands for this device
-(((Invoke-WebRequest -Uri "http://$ShellyMini/rpc/Shelly.ListMethods" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json).methods
+((Invoke-WebRequest -Uri "http://$ShellyMini/rpc/Shelly.ListMethods" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json).methods
 
 
 # Get the status
-$ShellyMiniGetStatus = ((Invoke-WebRequest -Uri "http://$ShellyMini/rpc/Shelly.GetStatus" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyMiniGetStatus = (Invoke-WebRequest -Uri "http://$ShellyMini/rpc/Shelly.GetStatus" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 # Selected infos, here switch status and temperature.
 $ShellyMiniGetStatus.'switch:0'.output
 $ShellyMiniGetStatus.'switch:0'.temperature.tC
@@ -50,7 +52,7 @@ Get-PropertiesRecursive $ShellyMiniGetStatus -ParentName '$ShellyMiniGetStatus'
 
 
 # Get the configuration
-$ShellyMiniGetConfig = ((Invoke-WebRequest -Uri "http://$ShellyMini/rpc/Shelly.GetConfig" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyMiniGetConfig = (Invoke-WebRequest -Uri "http://$ShellyMini/rpc/Shelly.GetConfig" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 
 # List all config information in a readable way.
 Get-PropertiesRecursive $ShellyMiniGetConfig -ParentName '$ShellyMiniGetConfig'
@@ -63,27 +65,27 @@ Invoke-WebRequest -Uri 'http://$ShellyMini/rpc/Switch.SetConfig?id=0&config={"na
 
 
 # Switch on. In this variant we get the information whether the switch was on before sending the command. This way the script can see whether the status actually changed.
-$ShellyMiniSwitch = ((Invoke-WebRequest -Uri "http://$ShellyMini/rpc/Switch.Set?id=0&on=true" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyMiniSwitch = (Invoke-WebRequest -Uri "http://$ShellyMini/rpc/Switch.Set?id=0&on=true" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 $ShellyMiniSwitch.was_on
 # Switch off
-$ShellyMiniSwitch = ((Invoke-WebRequest -Uri "http://$ShellyMini/rpc/Switch.Set?id=0&on=false" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyMiniSwitch = (Invoke-WebRequest -Uri "http://$ShellyMini/rpc/Switch.Set?id=0&on=false" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 $ShellyMiniSwitch.was_on
 
 
 # Status as Gen 1 command. Untested since I don't have one, "Not found" on Gen 3
-$ShellyMiniGetStatus = ((Invoke-WebRequest -Uri "http://$ShellyMini/status" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyMiniGetStatus = (Invoke-WebRequest -Uri "http://$ShellyMini/status" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 
 # List all Gen1 status information in a readable way.
 Get-PropertiesRecursive $ShellyMiniGetStatus -ParentName '$ShellyMiniGetStatus'
 
 # Get relay status as Gen 1 command. Works for Gen3 too.
-$ShellyMiniSwitch = ((Invoke-WebRequest -Uri "http://$ShellyMini/relay/0" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyMiniSwitch = (Invoke-WebRequest -Uri "http://$ShellyMini/relay/0" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 $ShellyMiniSwitch.ison
 
 # Switch on in "Gen 1 command" style, which work on Gen3 too. This time it returns the status after the switching.
-$ShellyMiniSwitch = ((Invoke-WebRequest -Uri "http://$ShellyMini/relay/0?turn=on" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyMiniSwitch = (Invoke-WebRequest -Uri "http://$ShellyMini/relay/0?turn=on" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 $ShellyMiniSwitch.ison
 # Switch off
-$ShellyMiniSwitch = ((Invoke-WebRequest -Uri "http://$ShellyMini/relay/0?turn=off" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyMiniSwitch = (Invoke-WebRequest -Uri "http://$ShellyMini/relay/0?turn=off" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 $ShellyMiniSwitch.ison
 

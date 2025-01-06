@@ -4,15 +4,15 @@
 
 
 # Where is the device ?
-$Shelly3EMIP = "192.168.33.159"
+$Shelly3EMIP = "192.168.33.50"
 
-# Helper function to list all properties
 function Get-PropertiesRecursive {
     param (
         [Parameter(ValueFromPipeline)][object]$InputObject,
-        [String]$ParentName
+        [String]$ParentName,
+        [int]$MaxDepth = 10
     )
-    if ($ParentName) {$ParentName +="."}
+    if ($ParentName) {$ParentNameDot ="$ParentName."} else {$ParentNameDot = ""}
     foreach ($Property in $InputObject.psobject.Properties) {
         # This puts special characters in '' like you need it when using it directly with powershell
         if ($Property.Name -like "*:*" -or $Property.Name -like "* *"  -or $Property.Name -like "*-*") {
@@ -22,25 +22,26 @@ function Get-PropertiesRecursive {
         }
         $PropertyTypeName = $Property.TypeNameOfValue.Split('.')[-1]
         if (($PropertyTypeName -ne "PSCustomObject" -and $PropertyTypeName -notlike "Object*") -or
-            $ParentName -like "*.SyncRoot.*") {
+            # Catch simple recursion
+            $ParentName.Split('.')[-1] -eq $Name -or $MaxDepth -le 0) {
             [pscustomobject]@{
-                TypeName = $Property.TypeNameOfValue.Split(".")[-1]
-                Property = "$ParentName$Name"
+                TypeName = $PropertyTypeName
+                Property = "$ParentNameDot$Name"
                 Value = $Property.Value
             }
         } else {
-            Get-PropertiesRecursive $Property.Value -ParentName "$ParentName$Name"
+            Get-PropertiesRecursive $Property.Value -ParentName "$ParentNameDot$Name" -MaxDepth $($MaxDepth-1)
         }
     }
 }
 
 
 # List all available rpc commands for this device
-(((Invoke-WebRequest -Uri "http://$Shelly3EMIP/rpc/Shelly.ListMethods" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json).methods
+((Invoke-WebRequest -Uri "http://$Shelly3EMIP/rpc/Shelly.ListMethods" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json).methods
 
 
 # Get the status and convert the JSON into a usable object.
-$Shelly3EMGetStatus = ((Invoke-WebRequest -Uri "http://$Shelly3EMIP/rpc/Shelly.GetStatus" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$Shelly3EMGetStatus = (Invoke-WebRequest -Uri "http://$Shelly3EMIP/rpc/Shelly.GetStatus" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 # Temperature in celsius
 $Shelly3EMGetStatus.'temperature:0'.tC
 # Actual total power over all three phases. This is what the energy meter from your electricity supplier sees and you pay for.
@@ -54,7 +55,7 @@ Get-PropertiesRecursive $Shelly3EMGetStatus -ParentName '$Shelly3EMGetStatus'
 
 
 # Get the configuration
-$Shelly3EMGetConfig = ((Invoke-WebRequest -Uri "http://$Shelly3EMIP/rpc/Shelly.GetConfig" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$Shelly3EMGetConfig = (Invoke-WebRequest -Uri "http://$Shelly3EMIP/rpc/Shelly.GetConfig" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 
 # List all config information in a readable way.
 Get-PropertiesRecursive $Shelly3EMGetConfig -ParentName '$Shelly3EMGetConfig'
@@ -97,7 +98,7 @@ $Shelly3EMDat = (Invoke-WebRequest -Uri "http://$Shelly3EMIP/emdata/0/data.csv?a
 # Now rerun that for loop from above
 
 
-# Power log for a specific date frame (buggy with firmwate 1.3.0, upgrade to 1.3.1:
+# Power log for a specific date frame (currently buggy):
 $UnixTimeFrom = [uint64]((Get-Date "2024-05-11 00:00:00").ToUniversalTime()-(Get-Date "1970-01-01Z").ToUniversalTime()).TotalSeconds
 $UnixTimeTo   = [uint64]((Get-Date "2024-05-12 23:59:59").ToUniversalTime()-(Get-Date "1970-01-01Z").ToUniversalTime()).TotalSeconds
 $Shelly3EMDat = (Invoke-WebRequest -Uri "http://$Shelly3EMIP/emdata/0/data.csv?add_keys=true&ts=$UnixTimeFrom&end_ts=$UnixTimeTo" -Method Get -UseBasicParsing -TimeoutSec 5).content | ConvertFrom-Csv| Select-Object DateTime,power_avg,power_min,power_max,*

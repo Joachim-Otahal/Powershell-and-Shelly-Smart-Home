@@ -10,9 +10,10 @@ $ShellyPlugIP="192.168.33.194"
 function Get-PropertiesRecursive {
     param (
         [Parameter(ValueFromPipeline)][object]$InputObject,
-        [String]$ParentName
+        [String]$ParentName,
+        [int]$MaxDepth = 10
     )
-    if ($ParentName) {$ParentName +="."}
+    if ($ParentName) {$ParentNameDot ="$ParentName."} else {$ParentNameDot = ""}
     foreach ($Property in $InputObject.psobject.Properties) {
         # This puts special characters in '' like you need it when using it directly with powershell
         if ($Property.Name -like "*:*" -or $Property.Name -like "* *"  -or $Property.Name -like "*-*") {
@@ -22,52 +23,53 @@ function Get-PropertiesRecursive {
         }
         $PropertyTypeName = $Property.TypeNameOfValue.Split('.')[-1]
         if (($PropertyTypeName -ne "PSCustomObject" -and $PropertyTypeName -notlike "Object*") -or
-            $ParentName -like "*.SyncRoot.*") {
+            # Catch simple recursion
+            $ParentName.Split('.')[-1] -eq $Name -or $MaxDepth -le 0) {
             [pscustomobject]@{
-                TypeName = $Property.TypeNameOfValue.Split(".")[-1]
-                Property = "$ParentName$Name"
+                TypeName = $PropertyTypeName
+                Property = "$ParentNameDot$Name"
                 Value = $Property.Value
             }
         } else {
-            Get-PropertiesRecursive $Property.Value -ParentName "$ParentName$Name"
+            Get-PropertiesRecursive $Property.Value -ParentName "$ParentNameDot$Name" -MaxDepth $($MaxDepth-1)
         }
     }
 }
 
 
 # List all available rpc commands for this device (Only Shelly Plug S Plus)
-(((Invoke-WebRequest -Uri "http://$ShellyPlugIP/rpc/Shelly.ListMethods" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json).methods
+((Invoke-WebRequest -Uri "http://$ShellyPlugIP/rpc/Shelly.ListMethods" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json).methods
 
 
 # Get the status (Only Shelly Plug S Plus)
-$ShellyPlugGetStatus = ((Invoke-WebRequest -Uri "http://$ShellyPlugIP/rpc/Shelly.GetStatus" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyPlugGetStatus = (Invoke-WebRequest -Uri "http://$ShellyPlugIP/rpc/Shelly.GetStatus" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 
 # List all status information in a readable way.
 Get-PropertiesRecursive $ShellyPlugGetStatus -ParentName '$ShellyPlugGetStatus'
 
 
 # Switch on (Only Shelly Plug S Plus). In this variant we get the information whether the switch was on before sending the command. This way the script can see whether the status actually changed.
-$ShellyPlugSwitch = ((Invoke-WebRequest -Uri "http://$ShellyPlugIP/rpc/Switch.Set?id=0&on=true" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyPlugSwitch = (Invoke-WebRequest -Uri "http://$ShellyPlugIP/rpc/Switch.Set?id=0&on=true" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 $ShellyPlugSwitch.was_on
 # Switch off (Only Shelly Plug S Plus)
-$ShellyPlugSwitch = ((Invoke-WebRequest -Uri "http://$ShellyPlugIP/rpc/Switch.Set?id=0&on=false" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyPlugSwitch = (Invoke-WebRequest -Uri "http://$ShellyPlugIP/rpc/Switch.Set?id=0&on=false" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 $ShellyPlugSwitch.was_on
 
 
 # Get relay status old-style. Works on both Shelly Plug S and Shelly Plug S Plus
-$ShellyPlugSwitch = ((Invoke-WebRequest -Uri "http://$ShellyPlugIP/relay/0" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyPlugSwitch = (Invoke-WebRequest -Uri "http://$ShellyPlugIP/relay/0" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 $ShellyPlugSwitch.ison
 
 
 # Switch old-style. Works on both Shelly Plug S and Shelly Plug S Plus
-$ShellyPlugSwitch = ((Invoke-WebRequest -Uri "http://$ShellyPlugIP/relay/0?turn=on" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyPlugSwitch = (Invoke-WebRequest -Uri "http://$ShellyPlugIP/relay/0?turn=on" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 $ShellyPlugSwitch.ison
-$ShellyPlugSwitch = ((Invoke-WebRequest -Uri "http://$ShellyPlugIP/relay/0?turn=off" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyPlugSwitch = (Invoke-WebRequest -Uri "http://$ShellyPlugIP/relay/0?turn=off" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 $ShellyPlugSwitch.ison
 
 
 # Get the full status from Shelly Plug S (gen 1). Tested since a friend lent me one for tests. Does not work on Shelly Plug S Plus
-$ShellyPlugGetStatus = ((Invoke-WebRequest -Uri "http://$ShellyPlugIP/status" -Method Get -UseBasicParsing -TimeoutSec 5).RawContent -split "`n")[-1] | ConvertFrom-Json
+$ShellyPlugGetStatus = (Invoke-WebRequest -Uri "http://$ShellyPlugIP/status" -Method Get -UseBasicParsing -TimeoutSec 5).Content | ConvertFrom-Json
 
 # List all status information in a readable way.
 Get-PropertiesRecursive $ShellyMiniGetStatus -ParentName '$ShellyMiniGetStatus'
