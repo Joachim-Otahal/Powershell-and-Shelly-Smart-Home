@@ -12,6 +12,9 @@ Depending on the age or generation of the shelly you can use rpc commands, which
 
 The commands with examples for curl are listed at https://shelly-api-docs.shelly.cloud , and they can all be translated to powershell.
 
+## Shelly Powershell System.Net.Http.HttpClient.ps1 ##
+This real-world example uses System.Net.Http.HttpClient async with GetStringAsync in Powershell to query eight shellies in parallel for their status instead of linear Invoke-Webrequests. So on my WLAN instead of about 2 seconds or a lot more if one or more Shelly temporaty does not respond this usually needs less than a half second, at worst 700 ms.
+
 ## Shelly-Important-RPC-commands.ps1
 Things like "How do I get a list of all available commands?"
 
@@ -23,3 +26,4 @@ Get the status, use the switch.
 
 ## Shelly-Plug-S.ps1
 Get the status, use the switch.
+
